@@ -11,6 +11,7 @@ from keras.models import Sequential
 from keras.layers import Cropping2D, Lambda, Dropout
 from keras.layers.core import Dense, Activation, Flatten
 from keras.layers.convolutional import Convolution2D
+from keras import optimizers
 
 
 
@@ -25,7 +26,7 @@ def get_samples():
     # pop out the first row in the csv file
     #lines.pop(0)
     # split the samples into training set and validation set
-    
+    shuffle(lines)
     train_samples, validation_samples = train_test_split(lines, test_size=0.2)
     return train_samples, validation_samples
 
@@ -34,10 +35,17 @@ def get_samples():
 # Data Processing 
 def preprocess(image):
     #crop
-    image_crop=image[65:140, 0:320]
+    image_crop=image[45:140, :,:]
+    #translate
+    #dx=np.random.uniform(-1, 1)
+    #dy=np.random.uniform(-2, 2)
+    #M=np.float32([[1,0,dx],[0,1,dy]])
+    #image_crop=cv2.warpAffine(image_crop, M, (image_crop.shape[0], image_crop.shape[1]))
     #resize
     image_resize=cv2.resize(image_crop, (200, 66), cv2.INTER_AREA)
-    return image_resize
+    # change color
+    image_color= cv2.cvtColor(image_resize, cv2.COLOR_BGR2YUV)
+    return image_color
 
 
 ## function: X, y = generator(samples)
@@ -45,8 +53,8 @@ def preprocess(image):
 def batch_generator(lines, batch_size):
     num_samples = len(lines)
     while 1: 
-        shuffle(lines)
         for offset in range(0, num_samples, batch_size):
+            shuffle(lines)
             batch_samples = lines[offset: offset+batch_size]
             center_images = []
             left_images = []
@@ -73,24 +81,25 @@ def batch_generator(lines, batch_size):
                 center_image = preprocess(center_image)
                 left_image = preprocess(left_image)
                 right_image = preprocess(right_image)
-                center_images.append(center_image)
-                left_images.append(left_image)
-                right_images.append(right_image)
+                #center_images.append(center_image)
+                #left_images.append(left_image)
+                #right_images.append(right_image)
                 cam_images.extend([center_image, left_image, right_image])
                 # get the steering values
-                correction = 0.2
+                correction = 0.25 
                 steering_angles.extend([steering_angle, steering_angle+correction, steering_angle-correction])
+                #steering_angles.append(steering_angle)
             # convert to numpy array    
             X_train = np.array(cam_images)
             y_train = np.array(steering_angles)
-            yield (X_train, y_train)
+            yield shuffle(X_train, y_train)
     
 
 
 # Build the model
 model=Sequential()
 # lambda layer: normalize image data
-model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(66,200,3)))
+model.add(Lambda(lambda x: x / 127.5 - 1.0, input_shape=(66,200,3)))
 # Conv layer: 5x5
 model.add(Convolution2D(24, 5, 5, activation="elu", border_mode='valid', subsample=(2, 2)))
 # Conv layer: 5x5
@@ -98,9 +107,9 @@ model.add(Convolution2D(36, 5, 5, activation="elu", border_mode='valid', subsamp
 # Conv layer: 5x5
 model.add(Convolution2D(48, 5, 5, activation="elu", border_mode='valid', subsample=(2, 2)))
 # Conv layer: 3x3
-model.add(Convolution2D(64, 3, 3, activation="elu", border_mode='valid', subsample=(1, 1)))
+model.add(Convolution2D(64, 3, 3, activation="elu", border_mode='valid'))
 # Conv layer: 3x3
-model.add(Convolution2D(64, 3, 3, activation="elu", border_mode='valid', subsample=(1, 1)))
+model.add(Convolution2D(64, 3, 3, activation="elu", border_mode='valid'))
 # Dropout
 model.add(Dropout(0.5))
 # Flatten
@@ -111,8 +120,9 @@ model.add(Dense(100, activation="elu"))
 model.add(Dense(50, activation="elu"))
 # Dense
 model.add(Dense(10, activation="elu"))
+
 # Dense
-model.add(Dense(1, activation="elu"))
+model.add(Dense(1))
 
 
 # Train the model
@@ -123,7 +133,7 @@ samples_train, samples_valid = get_samples()
 train_generator=batch_generator(samples_train, batch_size)
 validation_generator = batch_generator(samples_valid, batch_size)
 
-model.compile(loss='mse', optimizer='adam')
+model.compile(loss='mse', optimizer=optimizers.Adam(lr=1e-4))
 model.fit_generator(train_generator, 
                     samples_per_epoch = 3*len(samples_train), 
                     validation_data= validation_generator,
