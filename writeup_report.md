@@ -112,8 +112,9 @@ I used the training data to train the model. The validation set helped determine
 After the training process with a batch size of 128 in 10 epochs, The model was saved in a file called model.h5. I started the simulation by executing 
 ```
 python drive.py model.h5
-```.
-The ```drive.py``` program uses the same image preprocessing strategy as ```model.py```. The only difference is that the color is changed from RGB to YUV in ```drive.py``` but it is changed from BGR to YUV in ```model.py```. The trained model predicts the steering command based on the image data input. 
+```
+
+The ```drive.py``` file uses the same image preprocessing strategy as ```model.py```. The only difference is that the color is changed from RGB to YUV in ```drive.py``` but it is changed from BGR to YUV in ```model.py```. The trained model predicts the steering command based on the image data input. 
 
 When I opened the simulator and selected autonomous mode, the vehicle ran along the road automatically. I recorded a [video](https://youtu.be/JNt2j7QPjyw) which shows that the vehicle can run on track 1 autonomously.
 
