@@ -15,8 +15,7 @@ from keras import optimizers
 
 
 
-## function: samples_train, samples_valid = get_sample()
-# read the driving log file
+# Read the driving log file
 def get_samples():
     lines = []
     with open('data/driving_log.csv') as csvfile:
@@ -31,7 +30,6 @@ def get_samples():
     return train_samples, validation_samples
 
 
-# function: image_resize=preprocess(image) 
 # Data Processing 
 def preprocess(image):
     #crop
@@ -48,8 +46,7 @@ def preprocess(image):
     return image_color
 
 
-## function: X, y = generator(samples)
-# get the images and steering values
+# Get the images and steering values
 def batch_generator(lines, batch_size):
     num_samples = len(lines)
     while 1: 
@@ -93,8 +90,9 @@ def batch_generator(lines, batch_size):
             X_train = np.array(cam_images)
             y_train = np.array(steering_angles)
             yield shuffle(X_train, y_train)
-    
 
+    
+#Main
 
 # Build the model
 model=Sequential()
@@ -128,11 +126,12 @@ model.add(Dense(1))
 # Train the model
 batch_size=128
 epoch=10
-
+# Read image data
 samples_train, samples_valid = get_samples()
+# Generator
 train_generator=batch_generator(samples_train, batch_size)
 validation_generator = batch_generator(samples_valid, batch_size)
-
+# Define the loss function and optimizer
 model.compile(loss='mse', optimizer=optimizers.Adam(lr=1e-4))
 model.fit_generator(train_generator, 
                     samples_per_epoch = 3*len(samples_train), 
